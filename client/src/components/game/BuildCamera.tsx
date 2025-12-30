@@ -2,12 +2,13 @@ import { OrbitControls } from "@react-three/drei";
 import { useRollerCoaster } from "@/lib/stores/useRollerCoaster";
 
 export function BuildCamera() {
-  const { mode } = useRollerCoaster();
+  const { mode, isDraggingPoint } = useRollerCoaster();
   
   if (mode === "ride") return null;
   
   return (
     <OrbitControls
+      enabled={!isDraggingPoint}
       enablePan={true}
       enableZoom={true}
       enableRotate={true}

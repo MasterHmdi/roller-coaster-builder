@@ -11,7 +11,7 @@ interface TrackPointProps {
 
 export function TrackPoint({ id, position, index }: TrackPointProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const { selectedPointId, selectPoint, updateTrackPoint, mode } = useRollerCoaster();
+  const { selectedPointId, selectPoint, updateTrackPoint, mode, setIsDraggingPoint } = useRollerCoaster();
   const [isDragging, setIsDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
   const { gl } = useThree();
@@ -42,6 +42,7 @@ export function TrackPoint({ id, position, index }: TrackPointProps) {
     
     const handlePointerUp = () => {
       setIsDragging(false);
+      setIsDraggingPoint(false);
     };
     
     gl.domElement.addEventListener("pointermove", handlePointerMove);
@@ -51,12 +52,13 @@ export function TrackPoint({ id, position, index }: TrackPointProps) {
       gl.domElement.removeEventListener("pointermove", handlePointerMove);
       gl.domElement.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [isDragging, id, updateTrackPoint, mode, gl.domElement]);
+  }, [isDragging, id, updateTrackPoint, mode, gl.domElement, setIsDraggingPoint]);
   
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     if (mode !== "build") return;
     e.stopPropagation();
     setIsDragging(true);
+    setIsDraggingPoint(true);
     selectPoint(id);
   };
   
