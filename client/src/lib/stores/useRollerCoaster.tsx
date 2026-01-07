@@ -297,32 +297,53 @@ export const useRollerCoaster = create<RollerCoasterState>((set, get) => ({
         });
       }
       
-      // Loop exit position
+      // Loop exit position (includes helical offset)
       const loopExitPos = loopPoints[loopPoints.length - 1].position.clone();
       
-      // Add DEPARTURE guide points after the loop exit
-      // These force the spline to leave in the correct direction (forward)
+      // Add DEPARTURE transition points that gradually reduce the lateral offset
+      // This prevents the fold caused by jumping from offset position to centerline
+      const nextOriginalPoint = state.trackPoints[pointIndex + 1];
       const departureDist = 3;
-      const departurePoints: TrackPoint[] = [
-        {
-          id: `point-${++pointCounter}`,
-          position: new THREE.Vector3(
-            loopExitPos.x + forward.x * departureDist,
+      const numDeparturePoints = 4;
+      const departurePoints: TrackPoint[] = [];
+      
+      for (let i = 1; i <= numDeparturePoints; i++) {
+        const t = i / numDeparturePoints; // 0.25, 0.5, 0.75, 1.0
+        
+        // Gradually reduce the lateral offset from full to zero
+        const remainingOffset = helixSeparation * (1 - t);
+        
+        // Base position: move forward and reduce lateral offset
+        let pos: THREE.Vector3;
+        
+        if (nextOriginalPoint) {
+          // Blend toward the next original point
+          const targetPos = nextOriginalPoint.position.clone();
+          const forwardPos = new THREE.Vector3(
+            loopExitPos.x + forward.x * departureDist * i,
             loopExitPos.y,
-            loopExitPos.z + forward.z * departureDist
-          ),
-          tilt: 0
-        },
-        {
-          id: `point-${++pointCounter}`,
-          position: new THREE.Vector3(
-            loopExitPos.x + forward.x * departureDist * 2,
+            loopExitPos.z + forward.z * departureDist * i
+          );
+          // Lerp between straight exit and target
+          pos = forwardPos.lerp(targetPos, t * 0.5);
+          // Apply remaining lateral offset
+          pos.x += right.x * remainingOffset;
+          pos.z += right.z * remainingOffset;
+        } else {
+          // No next point - just go straight forward, reducing offset
+          pos = new THREE.Vector3(
+            loopExitPos.x + forward.x * departureDist * i + right.x * remainingOffset,
             loopExitPos.y,
-            loopExitPos.z + forward.z * departureDist * 2
-          ),
-          tilt: 0
+            loopExitPos.z + forward.z * departureDist * i + right.z * remainingOffset
+          );
         }
-      ];
+        
+        departurePoints.push({
+          id: `point-${++pointCounter}`,
+          position: pos,
+          tilt: 0
+        });
+      }
       
       // Combine: replace the entry point with approach + loop + departure
       const newTrackPoints = [
