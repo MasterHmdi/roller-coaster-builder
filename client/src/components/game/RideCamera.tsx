@@ -82,7 +82,8 @@ export function RideCamera() {
       
       const energySpeed = Math.sqrt(2 * gravity * Math.max(0, heightDrop));
       
-      const minSpeed = 1.0;
+      // Higher minimum speed for smooth loops
+      const minSpeed = 4.0;
       speed = Math.max(minSpeed, energySpeed) * rideSpeed;
     }
     
@@ -143,22 +144,18 @@ export function RideCamera() {
     const upVector = transportedUp.current.clone().applyAxisAngle(tangent, tiltRad);
     
     // Camera positioned directly on track with small height offset
-    const cameraHeight = 1.5;
+    const cameraHeight = 1.2;
     const cameraOffset = upVector.clone().multiplyScalar(cameraHeight);
     const targetCameraPos = position.clone().add(cameraOffset);
     
-    // Look ahead along the track for stable forward view
-    const lookAheadT = isLooped 
-      ? (newProgress + 0.03) % 1 
-      : Math.min(newProgress + 0.03, 0.999);
-    const lookAtPoint = curve.getPoint(lookAheadT);
+    // Look directly down the track - use tangent direction for look target
+    // This ensures we always look straight down the track
+    const lookDistance = 10;
+    const targetLookAt = position.clone().add(tangent.clone().multiplyScalar(lookDistance));
     
-    // Look at point ahead with matching height offset
-    const targetLookAt = lookAtPoint.clone().add(upVector.clone().multiplyScalar(cameraHeight * 0.8));
-    
-    // Smooth camera movement
-    previousCameraPos.current.lerp(targetCameraPos, 0.25);
-    previousLookAt.current.lerp(targetLookAt, 0.25);
+    // Fast, tight camera following for less sway
+    previousCameraPos.current.lerp(targetCameraPos, 0.5);
+    previousLookAt.current.lerp(targetLookAt, 0.5);
     
     camera.position.copy(previousCameraPos.current);
     
